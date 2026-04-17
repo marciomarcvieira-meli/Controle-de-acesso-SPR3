@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Controle de Acesso — HUB SPR3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --y: #FFE600; --yd: #E6CF00; --ydk: #B8A500;
+  --b: #3483FA; --bd: #1259C3; --bdk: #0A3D8F;
+  --g: #00A650; --r: #E53935; --o: #FF7733;
+  --bg: #EFEFEF; --card: #FFFFFF;
+  --border: #E2E2E2; --border2: #D0D0D0;
+  --tx: #2D2D2D; --txs: #7A7A7A; --txss: #AAAAAA;
+  --rad: 14px; --rads: 9px;
+  --sh: 0 2px 14px rgba(0,0,0,0.08);
+  --sha: 0 6px 28px rgba(0,0,0,0.14);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--y);position:sticky;top:0;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,.13);}
+.topbar-inner{max-width:980px;margin:0 auto;padding:0 18px;height:56px;display:flex;align-items:center;gap:12px;}
+.ml-logo{width:34px;height:34px;flex-shrink:0;}
+.topbar-info h1{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--tx);line-height:1.2;}
+.topbar-info p{font-size:10px;color:#555;font-weight:600;margin-top:1px;}
+.hub-pill{background:var(--bd);color:#fff;font-size:10px;font-weight:800;padding:4px 11px;border-radius:20px;font-family:'Nunito',sans-serif;letter-spacing:.5px;white-space:nowrap;}
+.topbar-tabs{margin-left:auto;display:flex;gap:3px;}
+.tab-btn{padding:7px 14px;border-radius:20px;border:none;background:transparent;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;color:#555;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.tab-btn:hover{background:rgba(0,0,0,.07);}
+.tab-btn.on{background:var(--tx);color:var(--y);}
+.n-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--bd);color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:1px 5px;margin-left:4px;min-width:17px;}
+
+/* ── ADMIN STRIP ── */
+.admin-strip{display:none;background:var(--bd);padding:7px 18px;text-align:center;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;}
+.admin-strip.show{display:block;}
+.admin-strip span{opacity:.8;font-weight:600;margin-left:8px;font-size:11px;}
+.btn-sair-admin{background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 12px;border-radius:12px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer;margin-left:14px;transition:background .2s;}
+.btn-sair-admin:hover{background:rgba(255,255,255,.35);}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.on{display:block;}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 72px;}
+.wrap-narrow{max-width:660px;margin:0 auto;padding:24px 16px 72px;}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:var(--rad);border:1.5px solid var(--border);box-shadow:var(--sh);padding:24px 24px 20px;margin-bottom:13px;animation:up .32s ease both;}
+.card:nth-child(2){animation-delay:.05s;}
+.card:nth-child(3){animation-delay:.10s;}
+.card:nth-child(4){animation-delay:.15s;}
+@keyframes up{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.sec-ttl{font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--bd);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:16px;display:flex;align-items:center;gap:7px;}
+.sec-ttl::before{content:'';width:4px;height:15px;background:var(--y);border-radius:2px;display:inline-block;}
+
+/* ── FIELDS ── */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.field{margin-bottom:15px;}
+.field:last-child{margin-bottom:0;}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:5px;color:var(--tx);}
+label .req{color:var(--r);margin-left:2px;}
+label .tip{font-weight:400;color:var(--txs);font-size:11px;margin-left:5px;}
+input[type=text],input[type=date],select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--rads);font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--tx);background:var(--card);outline:none;appearance:none;transition:border-color .2s,box-shadow .2s;}
+input:focus,select:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(52,131,250,.12);}
+input.err,select.err{border-color:var(--r)!important;}
+.sw{position:relative;}
+.sw::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--b);font-size:14px;pointer-events:none;}
+.sw select{padding-right:32px;cursor:pointer;}
+input#placa,input#ePlaca{text-transform:uppercase;font-weight:800;letter-spacing:3px;font-size:16px;}
+
+/* ── TURNO ── */
+.turno-g{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.ro input[type=radio]{display:none;}
+.ro label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:11px 5px;border:2px solid var(--border);border-radius:var(--rads);cursor:pointer;text-align:center;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--txs);margin:0;transition:all .18s;line-height:1.3;}
+.ro label .ico{font-size:19px;}
+.ro input:checked+label{border-color:var(--bd);background:#EBF2FF;color:var(--bd);}
+
+/* ── STATUS ── */
+.status-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.so input[type=radio]{display:none;}
+.so label{display:flex;align-items:center;justify-content:center;gap:7px;padding:14px;border:2px solid var(--border);border-radius:var(--rads);cursor:pointer;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--txs);margin:0;transition:all .18s;}
+.so input:checked+label.ent{border-color:var(--g);background:#E6F7EE;color:var(--g);}
+.so input:checked+label.sai{border-color:var(--b);background:#EBF2FF;color:var(--b);}
+
+/* ── SUBMIT ── */
+.btn-sub{width:100%;padding:16px;background:var(--y);border:none;border-radius:var(--rads);font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:var(--tx);cursor:pointer;transition:background .18s,transform .1s,box-shadow .18s;box-shadow:0 4px 18px rgba(255,230,0,.4);margin-top:4px;}
+.btn-sub:hover{background:var(--yd);transform:translateY(-1px);}
+.btn-sub:active{transform:translateY(0);}
+.btn-sub:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* ── SUCCESS ── */
+.suc{display:none;text-align:center;padding:44px 24px;}
+.chk{width:76px;height:76px;background:var(--g);border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:38px;color:#fff;animation:pop .4s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+.suc h2{font-family:'Nunito',sans-serif;font-size:21px;font-weight:900;margin-bottom:7px;}
+.suc p{color:var(--txs);font-size:13px;margin-bottom:26px;}
+.suc-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.btn-sec{padding:12px 28px;border:none;border-radius:var(--rads);font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:background .2s;}
+.btn-sec.blue{background:var(--b);color:#fff;}
+.btn-sec.blue:hover{background:var(--bd);}
+.btn-sec.dark{background:var(--tx);color:var(--y);}
+.btn-sec.dark:hover{background:#111;}
+
+/* ── STATS ── */
+.stats-g{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:13px;}
+.st-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--rads);padding:14px 12px;text-align:center;box-shadow:var(--sh);}
+.st-num{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:var(--bd);line-height:1;}
+.st-lbl{font-size:10px;font-weight:700;color:var(--txs);margin-top:4px;text-transform:uppercase;letter-spacing:.8px;}
+.st-card.gr .st-num{color:var(--g);}
+.st-card.rd .st-num{color:var(--r);}
+.st-card.yw .st-num{color:var(--ydk);}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:9px;margin-bottom:13px;flex-wrap:wrap;}
+.t-search{flex:1;min-width:170px;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--rads);font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.t-search:focus{border-color:var(--b);}
+.t-sel{padding:10px 11px;border:1.5px solid var(--border);border-radius:var(--rads);font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;cursor:pointer;appearance:none;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6'%3E%3Cpath d='M0 0l4.5 6L9 0z' fill='%233483FA'/%3E%3C/svg%3E") no-repeat right 9px center;padding-right:28px;}
+.btn-exp{padding:10px 16px;background:var(--g);color:#fff;border:none;border-radius:var(--rads);font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;transition:background .2s;white-space:nowrap;}
+.btn-exp:hover{background:#008A42;}
+.btn-clr{padding:10px 14px;background:#fff;color:var(--r);border:1.5px solid var(--r);border-radius:var(--rads);font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-clr:hover{background:var(--r);color:#fff;}
+.btn-adm{padding:10px 14px;background:#fff;color:var(--txs);border:1.5px solid var(--border2);border-radius:var(--rads);font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-adm:hover{border-color:var(--bd);color:var(--bd);}
+.btn-adm.active{background:#EBF2FF;color:var(--bd);border-color:var(--bd);}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:var(--rads);border:1.5px solid var(--border);box-shadow:var(--sh);}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);}
+thead th{background:var(--y);font-family:'Nunito',sans-serif;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--tx);padding:10px 11px;text-align:left;white-space:nowrap;border-bottom:2px solid var(--yd);}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:nth-child(even){background:#F8F8F8;}
+tbody tr:hover{background:#EEF4FF;}
+tbody td{padding:9px 11px;vertical-align:middle;white-space:nowrap;}
+.bdg{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;}
+.bdg.ent{background:#E6F7EE;color:var(--g);}
+.bdg.sai{background:#EBF2FF;color:var(--b);}
+.act-wrap{display:none;gap:4px;}
+.act-wrap.show{display:inline-flex;}
+.act-btn{background:none;border:1.5px solid transparent;font-size:13px;cursor:pointer;padding:3px 7px;border-radius:6px;font-family:'Nunito',sans-serif;font-weight:700;transition:all .15s;}
+.act-btn.edit{color:var(--txs);}
+.act-btn.edit:hover{color:var(--bd);background:#EBF2FF;border-color:var(--b);}
+.act-btn.del{color:#ccc;}
+.act-btn.del:hover{color:var(--r);background:#FFF0F0;border-color:var(--r);}
+.empty-st{text-align:center;padding:50px 20px;color:var(--txs);}
+.empty-st .eico{font-size:44px;margin-bottom:10px;}
+.empty-st p{font-size:13px;font-weight:600;}
+
+/* ── PIN MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card);border-radius:var(--rad);padding:36px 32px;width:100%;max-width:360px;box-shadow:var(--sha);text-align:center;animation:mIn .3s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes mIn{from{opacity:0;transform:scale(.88);}to{opacity:1;transform:scale(1);}}
+.modal h2{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--txs);margin-bottom:22px;}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:22px;}
+.pd{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all .18s;}
+.pd.filled{background:var(--bd);border-color:var(--bd);}
+.pd.wrong{background:var(--r);border-color:var(--r);animation:shk .3s ease;}
+@keyframes shk{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 16px;}
+.pk{padding:15px;border:1.5px solid var(--border);border-radius:var(--rads);background:var(--card);font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;color:var(--tx);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.pk:hover{background:var(--y);border-color:var(--yd);}
+.pk:active{transform:scale(.94);}
+.pk.dk{font-size:15px;color:var(--txs);}
+.pk.dk:hover{background:#FFF0F0;border-color:var(--r);color:var(--r);}
+.pin-err{color:var(--r);font-size:12px;font-weight:700;margin-bottom:8px;min-height:18px;}
+.btn-fch{background:none;border:none;color:var(--txs);font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;margin-top:4px;}
+
+/* ── EDIT MODAL ── */
+.emodal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;backdrop-filter:blur(3px);}
+.emodal-bg.show{display:flex;}
+.emodal{background:var(--card);border-radius:var(--rad);padding:26px 22px;width:100%;max-width:580px;box-shadow:var(--sha);animation:mIn .3s cubic-bezier(.175,.885,.32,1.275);margin:auto;}
+.emodal h2{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;margin-bottom:18px;color:var(--bd);display:flex;align-items:center;gap:7px;}
+.emodal h2::before{content:'';width:4px;height:16px;background:var(--y);border-radius:2px;display:inline-block;}
+.edit-actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap;}
+.btn-save{padding:11px 24px;background:var(--g);color:#fff;border:none;border-radius:var(--rads);font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:background .2s;}
+.btn-save:hover{background:#008A42;}
+.btn-canc{padding:11px 18px;background:#fff;color:var(--txs);border:1.5px solid var(--border2);border-radius:var(--rads);font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;}
+.btn-canc:hover{border-color:var(--r);color:var(--r);}
+
+/* ── TOAST ── */
+.toast{display:none;position:fixed;bottom:22px;left:50%;transform:translateX(-50%);color:#fff;padding:12px 24px;border-radius:40px;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:999;white-space:nowrap;animation:tIn .3s ease;}
+@keyframes tIn{from{opacity:0;transform:translateX(-50%) translateY(14px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(0,0,0,.15);border-top-color:var(--tx);border-radius:50%;animation:spinning .7s linear infinite;vertical-align:middle;margin-right:7px;}
+@keyframes spinning{to{transform:rotate(360deg);}}
+
+@media(max-width:640px){
+  .row2{grid-template-columns:1fr;}
+  .turno-g{grid-template-columns:1fr 1fr;}
+  .stats-g{grid-template-columns:1fr 1fr;}
+  .topbar-info p,.hub-pill{display:none;}
+  .tab-btn{padding:6px 9px;font-size:11px;}
+  .card{padding:18px 14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <svg class="ml-logo" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="24" fill="#FFE600"/>
+      <path d="M10 20l7 9 7-9 7 9 7-9" stroke="#333" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="topbar-info">
+      <h1>Controle de Acesso — Pátio</h1>
+      <p>Veículos Particulares · HUB SPR3</p>
+    </div>
+    <span class="hub-pill">HUB SPR3</span>
+    <div class="topbar-tabs">
+      <button class="tab-btn on" onclick="showPage('form')">✏️ Registrar</button>
+      <button class="tab-btn" onclick="showPage('table')">
+        📋 Registros <span class="n-badge" id="totalBadge">0</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN STRIP -->
+<div class="admin-strip" id="adminStrip">
+  🔐 Modo Administrador ativo
+  <span>— Edição e exclusão liberadas</span>
+  <button class="btn-sair-admin" onclick="sairAdmin()">Sair do Admin</button>
+</div>
+
+<!-- ══ PAGE: FORM ══ -->
+<div class="page on" id="page-form">
+<div class="wrap-narrow">
+  <div id="formWrap">
+
+    <div class="card">
+      <div class="sec-ttl">👤 Dados do Funcionário</div>
+      <div class="field">
+        <label>Nome Completo <span class="req">*</span></label>
+        <input type="text" id="nome" placeholder="Ex: Maria Fernanda Oliveira" autocomplete="name"/>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Cargo <span class="req">*</span></label>
+          <div class="sw"><select id="cargo">
+            <option value="">Selecione...</option>
+            <optgroup label="── Equipe Meli ──">
+            <option>Supervisor</option>
+            <option>Team Leader</option>
+            <option>Loss Prevention</option>
+            </optgroup>
+            <optgroup label="── Visitantes / Externos ──">
+            <option>Almoço / Alimentação</option>
+            <option>Manutenção Autorizada</option>
+            </optgroup>
+            <optgroup label="── Órgãos Fiscalizadores ──">
+            <option>Fiscal - Receita Federal</option>
+            <option>Fiscal - Ministério do Trabalho</option>
+            <option>Fiscal - Técnica do Trabalho</option>
+            </optgroup>
+          </select></div>
+        </div>
+        <div class="field">
+          <label>Setor / Área <span class="req">*</span></label>
+          <div class="sw"><select id="setor">
+            <option value="">Selecione...</option>
+            <option>Operações</option><option>Triagem</option><option>Gestão</option>
+            <option>Segurança</option><option>Administrativo</option><option>Transporte</option>
+            <option>TI</option><option>RH</option><option>Qualidade</option><option>Financeiro</option>
+          </select></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-ttl">🚗 Dados do Veículo</div>
+      <div class="row2">
+        <div class="field">
+          <label>Modelo <span class="req">*</span></label>
+          <div class="sw"><select id="modelo">
+            <option value="">Selecione...</option>
+            <optgroup label="── Sedãs / Hatches ──">
+            <option>Honda Civic</option><option>Toyota Corolla</option>
+            <option>Volkswagen Gol</option><option>Volkswagen Polo</option>
+            <option>Fiat Argo</option><option>Chevrolet Onix</option><option>Chevrolet Cruze</option>
+            <option>Hyundai HB20</option><option>Ford Ka</option>
+            <option>Renault Kwid</option>
+            </optgroup>
+            <optgroup label="── Crossovers / SUVs ──">
+            <option>Toyota Corolla Cross</option>
+            <option>Chevrolet Tracker</option>
+            <option>Volkswagen T-Cross</option>
+            <option>Jeep Compass</option><option>Jeep Commander</option><option>Jeep Renegade</option>
+            <option>Nissan Kicks</option><option>Honda HR-V</option>
+            </optgroup>
+            <optgroup label="── Picapes / Utilitários ──">
+            <option>Toyota Hilux</option><option>Fiat Strada</option>
+            </optgroup>
+            <option>Outro</option>
+          </select></div>
+        </div>
+        <div class="field">
+          <label>Cor <span class="req">*</span></label>
+          <div class="sw"><select id="cor">
+            <option value="">Selecione...</option>
+            <option>Branco</option><option>Preto</option><option>Prata</option>
+            <option>Cinza</option><option>Vermelho</option><option>Azul</option>
+            <option>Verde</option><option>Amarelo</option><option>Marrom</option>
+            <option>Bege</option><option>Outro</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="field" style="max-width:200px;">
+        <label>Placa <span class="req">*</span> <span class="tip">Mercosul ou antiga</span></label>
+        <input type="text" id="placa" placeholder="ABC1D23" maxlength="8"/>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-ttl">🔐 Dados do Acesso</div>
+      <div class="row2">
+        <div class="field">
+          <label>Tipo de Crachá <span class="req">*</span></label>
+          <div class="sw"><select id="cracha">
+            <option value="">Selecione...</option>
+            <option>Permanente</option><option>Temporário</option>
+            <option>Visitante Autorizado</option><option>Terceirizado</option><option>Estagiário</option>
+          </select></div>
+        </div>
+        <div class="field">
+          <label>Data <span class="req">*</span></label>
+          <input type="date" id="data"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Turno <span class="req">*</span></label>
+        <div class="turno-g">
+          <div class="ro"><input type="radio" name="turno" id="t1" value="Manhã (06h–14h)"/>
+            <label for="t1"><span class="ico">🌅</span>Manhã<br><small>06h–14h</small></label></div>
+          <div class="ro"><input type="radio" name="turno" id="t2" value="Tarde (14h–22h)"/>
+            <label for="t2"><span class="ico">☀️</span>Tarde<br><small>14h–22h</small></label></div>
+          <div class="ro"><input type="radio" name="turno" id="t3" value="Noite (22h–06h)"/>
+            <label for="t3"><span class="ico">🌙</span>Noite<br><small>22h–06h</small></label></div>
+          <div class="ro"><input type="radio" name="turno" id="t4" value="Administrativo (08h–17h)"/>
+            <label for="t4"><span class="ico">🏢</span>Adm.<br><small>08h–17h</small></label></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Status <span class="req">*</span></label>
+        <div class="status-g">
+          <div class="so"><input type="radio" name="status" id="sE" value="ENTRADA"/>
+            <label for="sE" class="ent">▶ ENTRADA</label></div>
+          <div class="so"><input type="radio" name="status" id="sS" value="SAÍDA"/>
+            <label for="sS" class="sai">◀ SAÍDA</label></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Observações <span class="tip">opcional</span></label>
+        <input type="text" id="obs" placeholder="Ex: Autorizado pelo gestor"/>
+      </div>
+    </div>
+
+    <button class="btn-sub" id="btnEnviar" onclick="registrar()">✅ Registrar Acesso</button>
+  </div>
+
+  <!-- Sucesso -->
+  <div class="card suc" id="sucWrap">
+    <div class="chk">✓</div>
+    <h2>Acesso Registrado!</h2>
+    <p id="sucMsg">Registro salvo com sucesso.</p>
+    <div class="suc-btns">
+      <button class="btn-sec blue" onclick="novoReg()">+ Novo Registro</button>
+      <button class="btn-sec dark" onclick="showPage('table')">Ver Registros 📋</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ PAGE: TABLE ══ -->
+<div class="page" id="page-table">
+<div class="wrap">
+
+  <div class="stats-g">
+    <div class="st-card"><div class="st-num" id="stHj">0</div><div class="st-lbl">Hoje</div></div>
+    <div class="st-card gr"><div class="st-num" id="stEnt">0</div><div class="st-lbl">Entradas</div></div>
+    <div class="st-card rd"><div class="st-num" id="stSai">0</div><div class="st-lbl">Saídas</div></div>
+    <div class="st-card yw"><div class="st-num" id="stAll">0</div><div class="st-lbl">Total Geral</div></div>
+  </div>
+
+  <div class="toolbar">
+    <input class="t-search" id="srch" type="text" placeholder="🔍  Buscar nome, placa, cargo..." oninput="renderTbl()"/>
+    <select class="t-sel" id="fSt" onchange="renderTbl()">
+      <option value="">Todos status</option>
+      <option value="ENTRADA">ENTRADA</option>
+      <option value="SAÍDA">SAÍDA</option>
+    </select>
+    <select class="t-sel" id="fTu" onchange="renderTbl()">
+      <option value="">Todos turnos</option>
+      <option value="Manhã">Manhã</option>
+      <option value="Tarde">Tarde</option>
+      <option value="Noite">Noite</option>
+      <option value="Administrativo">Adm.</option>
+    </select>
+    <button class="btn-exp" onclick="exportar()">⬇ Exportar Excel</button>
+    <button class="btn-clr" onclick="confirmarLimpar()">🗑 Limpar</button>
+    <button class="btn-adm" id="btnAdm" onclick="toggleAdmin()">🔐 Admin</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Nome</th><th>Cargo</th><th>Setor</th>
+        <th>Veículo</th><th>Cor</th><th>Placa</th><th>Crachá</th>
+        <th>Turno</th><th>Data/Hora</th><th>Status</th><th>Obs.</th>
+        <th id="thAcoes"></th>
+      </tr></thead>
+      <tbody id="tblBody"></tbody>
+    </table>
+    <div class="empty-st" id="emptySt" style="display:none;">
+      <div class="eico">📋</div>
+      <p>Nenhum registro encontrado.<br>Use o formulário para registrar acessos.</p>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- PIN MODAL -->
+<div class="modal-bg" id="pinModal">
+  <div class="modal">
+    <h2>🔐 Acesso Administrador</h2>
+    <p>Digite o PIN de 4 dígitos para<br>habilitar edição e exclusão</p>
+    <div class="pin-dots" id="pinDots">
+      <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
+      <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <div class="pin-pad">
+      <button class="pk" onclick="pk('1')">1</button>
+      <button class="pk" onclick="pk('2')">2</button>
+      <button class="pk" onclick="pk('3')">3</button>
+      <button class="pk" onclick="pk('4')">4</button>
+      <button class="pk" onclick="pk('5')">5</button>
+      <button class="pk" onclick="pk('6')">6</button>
+      <button class="pk" onclick="pk('7')">7</button>
+      <button class="pk" onclick="pk('8')">8</button>
+      <button class="pk" onclick="pk('9')">9</button>
+      <button class="pk dk" onclick="pk('clr')">✕</button>
+      <button class="pk" onclick="pk('0')">0</button>
+      <button class="pk dk" onclick="pk('del')">⌫</button>
+    </div>
+    <button class="btn-fch" onclick="fecharPin()">Cancelar</button>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="emodal-bg" id="editModal">
+  <div class="emodal">
+    <h2>Editar Registro</h2>
+    <input type="hidden" id="editId"/>
+    <div class="field">
+      <label>Nome Completo <span class="req">*</span></label>
+      <input type="text" id="eNome"/>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Cargo</label>
+        <div class="sw"><select id="eCargo">
+          <optgroup label="── Equipe Meli ──">
+          <option>Supervisor</option>
+          <option>Team Leader</option>
+          <option>Loss Prevention</option>
+          </optgroup>
+          <optgroup label="── Visitantes / Externos ──">
+          <option>Almoço / Alimentação</option>
+          <option>Manutenção Autorizada</option>
+          </optgroup>
+          <optgroup label="── Órgãos Fiscalizadores ──">
+          <option>Fiscal - Receita Federal</option>
+          <option>Fiscal - Ministério do Trabalho</option>
+          <option>Fiscal - Técnica do Trabalho</option>
+          </optgroup>
+        </select></div>
+      </div>
+      <div class="field"><label>Setor</label>
+        <div class="sw"><select id="eSetor">
+          <option>Operações</option><option>Triagem</option><option>Gestão</option>
+          <option>Segurança</option><option>Administrativo</option><option>Transporte</option>
+          <option>TI</option><option>RH</option><option>Qualidade</option><option>Financeiro</option>
+        </select></div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Modelo</label>
+        <div class="sw"><select id="eModelo">
+          <optgroup label="── Sedãs / Hatches ──">
+          <option>Honda Civic</option><option>Toyota Corolla</option>
+          <option>Volkswagen Gol</option><option>Volkswagen Polo</option>
+          <option>Fiat Argo</option><option>Chevrolet Onix</option><option>Chevrolet Cruze</option>
+          <option>Hyundai HB20</option><option>Ford Ka</option>
+          <option>Renault Kwid</option>
+          </optgroup>
+          <optgroup label="── Crossovers / SUVs ──">
+          <option>Toyota Corolla Cross</option>
+          <option>Chevrolet Tracker</option>
+          <option>Volkswagen T-Cross</option>
+          <option>Jeep Compass</option><option>Jeep Commander</option><option>Jeep Renegade</option>
+          <option>Nissan Kicks</option><option>Honda HR-V</option>
+          </optgroup>
+          <optgroup label="── Picapes / Utilitários ──">
+          <option>Toyota Hilux</option><option>Fiat Strada</option>
+          </optgroup>
+          <option>Outro</option>
+        </select></div>
+      </div>
+      <div class="field"><label>Cor</label>
+        <div class="sw"><select id="eCor">
+          <option>Branco</option><option>Preto</option><option>Prata</option>
+          <option>Cinza</option><option>Vermelho</option><option>Azul</option>
+          <option>Verde</option><option>Amarelo</option><option>Marrom</option>
+          <option>Bege</option><option>Outro</option>
+        </select></div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Placa</label>
+        <input type="text" id="ePlaca" maxlength="8"/>
+      </div>
+      <div class="field"><label>Tipo de Crachá</label>
+        <div class="sw"><select id="eCracha">
+          <option>Permanente</option><option>Temporário</option>
+          <option>Visitante Autorizado</option><option>Terceirizado</option><option>Estagiário</option>
+        </select></div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Turno</label>
+        <div class="sw"><select id="eTurno">
+          <option>Manhã (06h–14h)</option><option>Tarde (14h–22h)</option>
+          <option>Noite (22h–06h)</option><option>Administrativo (08h–17h)</option>
+        </select></div>
+      </div>
+      <div class="field"><label>Status</label>
+        <div class="sw"><select id="eStatus">
+          <option>ENTRADA</option><option>SAÍDA</option>
+        </select></div>
+      </div>
+    </div>
+    <div class="field"><label>Observações</label>
+      <input type="text" id="eObs" placeholder="Observações opcionais"/>
+    </div>
+    <div class="edit-actions">
+      <button class="btn-canc" onclick="fecharEdit()">Cancelar</button>
+      <button class="btn-save" onclick="salvarEdit()">💾 Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE = 'spr3_v3';
+const ADMIN_PIN = '1234';
+let isAdmin = false;
+let pinBuf = '';
+
+function load(){ try{ return JSON.parse(localStorage.getItem(STORE))||[]; }catch{ return []; } }
+function save(a){ localStorage.setItem(STORE, JSON.stringify(a)); }
+
+// ── UTILS ──
+function toast(msg, c='#00A650'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=c; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',3000);
+}
+function getR(n){ const e=document.querySelector(`input[name="${n}"]:checked`); return e?e.value:''; }
+function hoje(){ return new Date().toISOString().split('T')[0]; }
+function stamp(){ const n=new Date(); return n.toLocaleDateString('pt-BR')+' '+n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function badge(){ const n=load().length; document.getElementById('totalBadge').textContent=n>99?'99+':n; }
+
+// ── NAV ──
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');
+  const tabs=document.querySelectorAll('.tab-btn');
+  tabs[name==='form'?0:1].classList.add('on');
+  if(name==='table'){ updateStats(); renderTbl(); }
+}
+
+// ── PIN ──
+function toggleAdmin(){
+  if(isAdmin){ sairAdmin(); return; }
+  pinBuf=''; renderDots(); document.getElementById('pinErr').textContent='';
+  document.getElementById('pinModal').classList.add('show');
+}
+function fecharPin(){ document.getElementById('pinModal').classList.remove('show'); pinBuf=''; renderDots(); }
+
+function pk(k){
+  const err=document.getElementById('pinErr'); err.textContent='';
+  if(k==='clr'){ pinBuf=''; }
+  else if(k==='del'){ pinBuf=pinBuf.slice(0,-1); }
+  else if(pinBuf.length<4){ pinBuf+=k; }
+  renderDots();
+  if(pinBuf.length===4){
+    if(pinBuf===ADMIN_PIN){
+      isAdmin=true; fecharPin();
+      document.getElementById('adminStrip').classList.add('show');
+      document.getElementById('btnAdm').classList.add('active');
+      document.getElementById('btnAdm').textContent='🔐 Sair Admin';
+      document.getElementById('thAcoes').textContent='Ações';
+      renderTbl(); toast('✅ Modo administrador ativado');
+    } else {
+      document.querySelectorAll('.pd').forEach(d=>{d.classList.add('wrong');d.classList.remove('filled');});
+      err.textContent='PIN incorreto. Tente novamente.';
+      setTimeout(()=>{ pinBuf=''; renderDots(); document.querySelectorAll('.pd').forEach(d=>d.classList.remove('wrong')); }, 800);
+    }
+  }
+}
+function renderDots(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    d.classList.toggle('filled',i<pinBuf.length); d.classList.remove('wrong');
+  }
+}
+
+function sairAdmin(){
+  isAdmin=false;
+  document.getElementById('adminStrip').classList.remove('show');
+  document.getElementById('btnAdm').classList.remove('active');
+  document.getElementById('btnAdm').textContent='🔐 Admin';
+  document.getElementById('thAcoes').textContent='';
+  renderTbl(); toast('Modo administrador desativado','#555');
+}
+
+// ── FORM ──
+document.getElementById('data').value=hoje();
+document.getElementById('placa').addEventListener('input',function(){ this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); });
+
+function validar(){
+  const ids=['nome','cargo','setor','modelo','cor','placa','cracha','data'];
+  let ok=true;
+  ids.forEach(id=>{ const el=document.getElementById(id); el.classList.remove('err'); if(!el.value.trim()){el.classList.add('err');ok=false;} });
+  if(!getR('turno')){ toast('⚠️ Selecione o turno','#E53935'); return false; }
+  if(!getR('status')){ toast('⚠️ Selecione ENTRADA ou SAÍDA','#E53935'); return false; }
+  if(!ok) toast('⚠️ Preencha todos os campos obrigatórios','#E53935');
+  return ok;
+}
+
+function registrar(){
+  if(!validar()) return;
+  const btn=document.getElementById('btnEnviar');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Salvando...';
+  setTimeout(()=>{
+    const r={
+      id:Date.now(),
+      nome:document.getElementById('nome').value.trim(),
+      cargo:document.getElementById('cargo').value,
+      setor:document.getElementById('setor').value,
+      modelo:document.getElementById('modelo').value,
+      cor:document.getElementById('cor').value,
+      placa:document.getElementById('placa').value.trim(),
+      cracha:document.getElementById('cracha').value,
+      turno:getR('turno'),
+      data:document.getElementById('data').value,
+      status:getR('status'),
+      obs:document.getElementById('obs').value.trim(),
+      dataHora:stamp(),
+    };
+    const arr=load(); arr.unshift(r); save(arr); badge();
+    document.getElementById('formWrap').style.display='none';
+    document.getElementById('sucWrap').style.display='block';
+    document.getElementById('sucMsg').textContent=`${r.nome} — ${r.status} em ${r.dataHora}`;
+    btn.disabled=false; btn.innerHTML='✅ Registrar Acesso';
+  }, 550);
+}
+
+function novoReg(){
+  document.getElementById('formWrap').style.display='block';
+  document.getElementById('sucWrap').style.display='none';
+  ['nome','placa','obs'].forEach(id=>document.getElementById(id).value='');
+  ['cargo','setor','modelo','cor','cracha'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('data').value=hoje();
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  document.querySelectorAll('.err').forEach(e=>e.classList.remove('err'));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── TABLE ──
+function updateStats(){
+  const all=load(), hj=hoje();
+  const h=all.filter(r=>r.data===hj);
+  document.getElementById('stHj').textContent=h.length;
+  document.getElementById('stEnt').textContent=h.filter(r=>r.status==='ENTRADA').length;
+  document.getElementById('stSai').textContent=h.filter(r=>r.status==='SAÍDA').length;
+  document.getElementById('stAll').textContent=all.length;
+}
+
+function renderTbl(){
+  const q=(document.getElementById('srch').value||'').toLowerCase();
+  const fSt=document.getElementById('fSt').value;
+  const fTu=document.getElementById('fTu').value;
+  const rows=load().filter(r=>{
+    const mQ=!q||[r.nome,r.placa,r.cargo,r.setor,r.modelo,r.cor].some(v=>(v||'').toLowerCase().includes(q));
+    const mS=!fSt||r.status===fSt;
+    const mT=!fTu||(r.turno||'').includes(fTu);
+    return mQ&&mS&&mT;
+  });
+  const body=document.getElementById('tblBody');
+  const empty=document.getElementById('emptySt');
+  if(!rows.length){ body.innerHTML=''; empty.style.display='block'; updateStats(); return; }
+  empty.style.display='none';
+  body.innerHTML=rows.map((r,i)=>`<tr>
+    <td style="color:var(--txs);font-size:12px;font-weight:700;">${i+1}</td>
+    <td style="font-weight:700;max-width:150px;overflow:hidden;text-overflow:ellipsis;">${r.nome}</td>
+    <td>${r.cargo}</td><td>${r.setor}</td><td>${r.modelo}</td><td>${r.cor}</td>
+    <td style="font-weight:800;letter-spacing:1.5px;font-family:'Nunito',sans-serif;">${r.placa}</td>
+    <td style="font-size:12px;">${r.cracha}</td>
+    <td>${(r.turno||'').split(' ')[0]}</td>
+    <td style="font-size:11px;color:var(--txs);">${r.dataHora}</td>
+    <td><span class="bdg ${r.status==='ENTRADA'?'ent':'sai'}">${r.status==='ENTRADA'?'▶ ENTRADA':'◀ SAÍDA'}</span></td>
+    <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--txs);">${r.obs||'—'}</td>
+    <td><div class="act-wrap ${isAdmin?'show':''}">
+      <button class="act-btn edit" title="Editar" onclick="abrirEdit(${r.id})">✏️</button>
+      <button class="act-btn del" title="Excluir" onclick="excluir(${r.id})">✕</button>
+    </div></td>
+  </tr>`).join('');
+  updateStats();
+}
+
+function excluir(id){
+  if(!isAdmin){ toast('🔐 Ative o modo Admin primeiro','#E53935'); return; }
+  if(!confirm('Excluir este registro permanentemente?')) return;
+  save(load().filter(r=>r.id!==id)); badge(); renderTbl();
+  toast('Registro excluído','#E53935');
+}
+
+function confirmarLimpar(){
+  if(!isAdmin){ toast('🔐 Ative o modo Admin primeiro','#E53935'); return; }
+  if(!load().length){ toast('Nenhum registro para limpar','#FF8C00'); return; }
+  if(!confirm('Apagar TODOS os registros? Não pode ser desfeito.')) return;
+  save([]); badge(); renderTbl(); toast('Todos os registros apagados','#E53935');
+}
+
+// ── EDIT ──
+function abrirEdit(id){
+  if(!isAdmin){ toast('🔐 Ative o modo Admin primeiro','#E53935'); return; }
+  const r=load().find(x=>x.id===id); if(!r) return;
+  document.getElementById('editId').value=id;
+  document.getElementById('eNome').value=r.nome;
+  document.getElementById('eCargo').value=r.cargo;
+  document.getElementById('eSetor').value=r.setor;
+  document.getElementById('eModelo').value=r.modelo;
+  document.getElementById('eCor').value=r.cor;
+  document.getElementById('ePlaca').value=r.placa;
+  document.getElementById('eCracha').value=r.cracha;
+  document.getElementById('eTurno').value=r.turno;
+  document.getElementById('eStatus').value=r.status;
+  document.getElementById('eObs').value=r.obs||'';
+  document.getElementById('editModal').classList.add('show');
+}
+function fecharEdit(){ document.getElementById('editModal').classList.remove('show'); }
+document.getElementById('ePlaca').addEventListener('input',function(){ this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); });
+
+function salvarEdit(){
+  const id=Number(document.getElementById('editId').value);
+  const arr=load(); const idx=arr.findIndex(r=>r.id===id); if(idx<0) return;
+  arr[idx]={...arr[idx],
+    nome:document.getElementById('eNome').value.trim(),
+    cargo:document.getElementById('eCargo').value,
+    setor:document.getElementById('eSetor').value,
+    modelo:document.getElementById('eModelo').value,
+    cor:document.getElementById('eCor').value,
+    placa:document.getElementById('ePlaca').value.trim(),
+    cracha:document.getElementById('eCracha').value,
+    turno:document.getElementById('eTurno').value,
+    status:document.getElementById('eStatus').value,
+    obs:document.getElementById('eObs').value.trim(),
+  };
+  save(arr); fecharEdit(); renderTbl(); toast('✅ Registro atualizado com sucesso');
+}
+
+// ── EXPORT ──
+function exportar(){
+  const all=load();
+  if(!all.length){ toast('Nenhum registro para exportar','#FF8C00'); return; }
+  const h=['Nº','Nome Completo','Cargo','Setor','Modelo','Cor','Placa','Crachá','Turno','Data/Hora','Status','Observações'];
+  const rows=all.map((r,i)=>[i+1,r.nome,r.cargo,r.setor,r.modelo,r.cor,r.placa,r.cracha,r.turno,r.dataHora,r.status,r.obs||'']);
+  const ws=XLSX.utils.aoa_to_sheet([h,...rows]);
+  ws['!cols']=[4,28,20,16,20,10,10,16,20,16,10,24].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Registro de Acesso');
+  XLSX.writeFile(wb,`Acesso_Patio_SPR3_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+  toast('✅ Excel exportado!');
+}
+
+// fechar modal clicando fora
+document.getElementById('pinModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) fecharPin(); });
+document.getElementById('editModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) fecharEdit(); });
+
+// init
+badge();
+</script>
+</body>
+</html>
